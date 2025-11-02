@@ -16,7 +16,8 @@ from database import init_db
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or '5326573614:AAGjV2gUnb5WPaL_3637dmyMoZmjhfRbc2I'
+
 
 # States
 MAIN_MENU = 0
