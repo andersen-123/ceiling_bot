@@ -71,25 +71,68 @@ async def add_worker_save(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     obj_id = int(query.data.split('_')[2])
+    context.user_data['worker_obj_id'] = obj_id
     
+    # Спросить про авто
+    keyboard = [
+        [InlineKeyboardButton("✅ Да", callback_data="car_yes"), 
+         InlineKeyboardButton("❌ Нет", callback_data="car_no")]
+    ]
+    
+    await query.edit_message_text(
+        f"👤 {context.user_data['worker_name']}\n\n🚗 Использует свой автомобиль?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return 14
+
+async def worker_car_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    used_car = 1 if query.data == "car_yes" else 0
+    context.user_data['worker_used_car'] = used_car
+    
+    # Спросить про бензин
+    keyboard = [
+        [InlineKeyboardButton("✅ Да", callback_data="fuel_yes"), 
+         InlineKeyboardButton("❌ Нет", callback_data="fuel_no")]
+    ]
+    
+    await query.edit_message_text(
+        f"👤 {context.user_data['worker_name']}\n\n⛽ Потратил на бензин?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return 15
+
+async def worker_fuel_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    spent_fuel = 1 if query.data == "fuel_yes" else 0
+    context.user_data['worker_spent_fuel'] = spent_fuel
+    
+    # Сохранить монтажника
     from database import add_worker
+    from handlers.menu import main_keyboard
     
     add_worker(
         update.effective_user.id,
-        obj_id,
+        context.user_data['worker_obj_id'],
         context.user_data['worker_name'],
-        used_car=0
+        used_car=context.user_data['worker_used_car']
     )
     
-    from handlers.menu import main_keyboard
+    summary = f"✅ <b>Монтажник добавлен!</b>\n\n"
+    summary += f"👤 {context.user_data['worker_name']}\n"
+    summary += f"🚗 Авто: {'Да ✅' if context.user_data['worker_used_car'] else 'Нет ❌'}\n"
+    summary += f"⛽ Бензин: {'Да ✅' if context.user_data['worker_spent_fuel'] else 'Нет ❌'}\n"
     
     await query.edit_message_text(
-        f"✅ Монтажник '{context.user_data['worker_name']}' добавлен!\n\n🏠 Главное меню:",
+        summary + "\n\n🏠 Главное меню:",
         reply_markup=main_keyboard()
     )
     return 0
 
-# Удалите функции worker_set_car, worker_set_fuel, worker_save_final
 
 
 async def worker_set_car(update: Update, context: ContextTypes.DEFAULT_TYPE):
