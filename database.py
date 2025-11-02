@@ -136,12 +136,12 @@ def get_object_workers(user_id, object_id):
 # SALARY CALCULATION
 def calculate_object_salary(user_id, object_id):
     """
-    Формула:
-    100% - Материалы - Бензин = Остаток
-    5% от остатка = Амортизация
-    (Остаток - Амортизация) / кол-во монтажников = базовая зарплата
-    + Возмещение бензина для того кто потратил
-    + 5% амортизации для того кто использовал авто
+    Формула расчёта зарплаты:
+    1. Остаток = Стоимость - Материалы - Бензин
+    2. Амортизация (5%) = 5% от остатка
+    3. Базовая зарплата = (Остаток - Амортизация) / кол-во монтажников
+    4. Добавить амортизацию тому, кто на авто
+    5. Возместить бензин тому, кто потратил
     """
     conn = get_db()
     c = conn.cursor()
@@ -172,7 +172,7 @@ def calculate_object_salary(user_id, object_id):
     
     # Получить монтажников
     c.execute(
-        "SELECT id, name, used_car FROM workers WHERE user_id=? AND object_id=?",
+        "SELECT name, used_car FROM workers WHERE user_id=? AND object_id=?",
         (user_id, object_id)
     )
     workers = c.fetchall()
@@ -185,23 +185,23 @@ def calculate_object_salary(user_id, object_id):
     # Расчёты
     remainder = total_cost - materials - fuel
     depreciation = remainder * 0.05
-    base_salary = (remainder - depreciation) / len(workers)
+    salary_without_depreciation = (remainder - depreciation) / len(workers)
     
     salaries = {}
-    for worker_id, worker_name, used_car in workers:
-        salary = base_salary
+    for worker_name, used_car in workers:
+        salary = salary_without_depreciation
         
-        # Возмещение бензина
-        if fuel > 0:
-            salary += fuel / len(workers)
-        
-        # Амортизация за использование авто
+        # Добавить амортизацию если использовал авто
         if used_car:
             salary += depreciation
         
+        # Возместить бензин
+        fuel_share = fuel / len(workers) if fuel > 0 else 0
+        salary += fuel_share
+        
         salaries[worker_name] = {
-            'base': base_salary,
-            'fuel_share': fuel / len(workers) if fuel > 0 else 0,
+            'base': salary_without_depreciation,
+            'fuel_share': fuel_share,
             'depreciation': depreciation if used_car else 0,
             'total': salary
         }
@@ -215,6 +215,18 @@ def calculate_object_salary(user_id, object_id):
         'salaries': salaries,
         'workers_count': len(workers)
     }
+
+def set_worker_used_car(user_id, object_id, worker_name, used_car):
+    """Установить что монтажник использовал авто на объекте"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE workers SET used_car=? WHERE user_id=? AND object_id=? AND name=?",
+        (used_car, user_id, object_id, worker_name)
+    )
+    conn.commit()
+    conn.close()
+
 
 def get_all_salaries(user_id):
     """Получить расчёты зарплаты по всем объектам"""
