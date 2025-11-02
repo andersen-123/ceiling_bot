@@ -8,7 +8,7 @@ from telegram import Update
 from handlers.menu import handle_menu, cancel_action, back_to_main, start
 from handlers.objects import add_object_step1, add_object_step2, add_object_step3, add_object_step4, add_object_save, show_objects
 from handlers.expenses import show_expenses_menu, select_expense_category, enter_expense_amount, save_expense
-from handlers.workers import show_workers_menu, add_worker_step1, add_worker_step2, add_worker_save, list_workers, worker_set_car, worker_set_fuel, worker_save_final
+from handlers.workers import show_workers_menu, add_worker_step1, add_worker_step2, add_worker_save, list_workers
 from handlers.salary import show_salary_menu
 
 from database import init_db
@@ -34,9 +34,6 @@ WORKERS_MENU = 10
 REPORTS_MENU = 11
 ADD_WORKER_NAME = 12
 ADD_WORKER_OBJECT = 13
-WORKER_CAR = 14
-WORKER_FUEL = 15
-WORKER_OTHER = 16
 SALARY_MENU = 14
 
 def main():
@@ -106,21 +103,6 @@ def main():
             ADD_WORKER_OBJECT: [
                 CommandHandler('start', start),
                 CallbackQueryHandler(add_worker_save, pattern="^worker_obj_"),
-                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
-            ],
-            WORKER_CAR: [
-                CommandHandler('start', start),
-	        CallbackQueryHandler(worker_set_car, pattern="^worker_car_"),
-                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
-            ],
-            WORKER_FUEL: [
-                CommandHandler('start', start),
-                CallbackQueryHandler(worker_set_fuel, pattern="^worker_fuel_"),
-                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
-            ],
-            WORKER_OTHER: [
-                CommandHandler('start', start),
-                CallbackQueryHandler(worker_save_final, pattern="^worker_other_"),
                 CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
 

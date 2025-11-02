@@ -71,19 +71,26 @@ async def add_worker_save(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     obj_id = int(query.data.split('_')[2])
-    context.user_data['worker_object_id'] = obj_id
     
-    # Спросить про авто
-    keyboard = [
-        [InlineKeyboardButton("🚗 Использует своё авто", callback_data="worker_car_yes")],
-        [InlineKeyboardButton("❌ Нет своего авто", callback_data="worker_car_no")]
-    ]
+    from database import add_worker
+    
+    add_worker(
+        update.effective_user.id,
+        obj_id,
+        context.user_data['worker_name'],
+        used_car=0
+    )
+    
+    from handlers.menu import main_keyboard
     
     await query.edit_message_text(
-        f"👤 {context.user_data['worker_name']}\n\n🚗 Использует свой автомобиль на объектах?",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        f"✅ Монтажник '{context.user_data['worker_name']}' добавлен!\n\n🏠 Главное меню:",
+        reply_markup=main_keyboard()
     )
-    return 14  # Новый state для выбора авто
+    return 0
+
+# Удалите функции worker_set_car, worker_set_fuel, worker_save_final
+
 
 async def worker_set_car(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
