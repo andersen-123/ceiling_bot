@@ -30,7 +30,19 @@ async def add_worker_step1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return 12
 
 async def add_worker_step2(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['worker_name'] = update.message.text
+    from database import worker_exists
+    
+    worker_name = update.message.text.strip()
+    
+    # Проверка на уникальность
+    if worker_exists(update.effective_user.id, worker_name):
+        await update.message.reply_text(
+            f"⚠️ Монтажник '{worker_name}' уже существует!",
+            reply_markup=cancel_button()
+        )
+        return 12
+    
+    context.user_data['worker_name'] = worker_name
     
     objects = get_objects(update.effective_user.id)
     
@@ -52,6 +64,7 @@ async def add_worker_step2(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return 13
+
 
 async def add_worker_save(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query

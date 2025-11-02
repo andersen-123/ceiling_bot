@@ -92,12 +92,22 @@ def get_workers(user_id):
     conn = get_db()
     c = conn.cursor()
     c.execute(
-        """SELECT DISTINCT w.id, w.name FROM workers w WHERE w.user_id=? ORDER BY w.name""",
+        """SELECT DISTINCT name FROM workers WHERE user_id=? ORDER BY name""",
         (user_id,)
     )
     workers = c.fetchall()
     conn.close()
-    return workers
+    return [(name[0],) for name in workers]
+
+def worker_exists(user_id, name):
+    """Проверить существует ли монтажник с таким именем"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT id FROM workers WHERE user_id=? AND name=?", (user_id, name))
+    exists = c.fetchone() is not None
+    conn.close()
+    return exists
+
 
 def get_worker_objects(user_id, worker_id):
     conn = get_db()
