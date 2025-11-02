@@ -102,7 +102,7 @@ async def worker_set_car(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 {context.user_data['worker_name']}\n\n⛽ Потратил ли деньги на бензин?",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    return 15  # Новый state для выбора бензина
+    return 15
 
 async def worker_set_fuel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -121,7 +121,8 @@ async def worker_set_fuel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 {context.user_data['worker_name']}\n\n💼 Были ли другие личные траты на объект?",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    return 16  # Новый state для выбора прочих трат
+    return 16
+
 
 async def worker_save_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
