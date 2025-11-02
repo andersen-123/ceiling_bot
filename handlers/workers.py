@@ -88,25 +88,47 @@ async def list_workers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    workers = get_workers(update.effective_user.id)
+    from database import get_db
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Получить уникальных монтажников
+    c.execute(
+        """SELECT DISTINCT name FROM workers WHERE user_id=? ORDER BY name""",
+        (update.effective_user.id,)
+    )
+    workers = c.fetchall()
     
     text = "👥 <b>СПИСОК МОНТАЖНИКОВ И ИХ ОБЪЕКТЫ</b>\n\n"
     
     if not workers:
         text += "Нет монтажников"
     else:
-        for worker_name, worker_id in workers:
-            objects = get_worker_objects(update.effective_user.id, worker_id)
+        for worker_row in workers:
+            worker_name = worker_row[0]
             
-            total = sum(cost for _, _, cost in objects)
+            # Получить объекты этого монтажника
+            c.execute(
+                """SELECT DISTINCT o.name, o.cost FROM workers w
+                   JOIN objects o ON w.object_id = o.id
+                   WHERE w.user_id=? AND w.name=?
+                   ORDER BY o.name""",
+                (update.effective_user.id, worker_name)
+            )
+            objects = c.fetchall()
+            
+            total = sum(cost for _, cost in objects)
             
             text += f"👤 {worker_name}\n"
             text += f"   📊 Объектов: {len(objects)}\n"
             text += f"   💰 Общий заработок: {total}₽\n"
             
-            for obj_name, _, obj_cost in objects:
+            for obj_name, obj_cost in objects:
                 text += f"      🏢 {obj_name}: {obj_cost}₽\n"
             text += "\n"
+    
+    conn.close()
     
     await query.edit_message_text(
         text,
@@ -114,3 +136,4 @@ async def list_workers(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
     return 10
+
