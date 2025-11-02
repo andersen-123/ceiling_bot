@@ -71,18 +71,89 @@ async def add_worker_save(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     obj_id = int(query.data.split('_')[2])
+    context.user_data['worker_object_id'] = obj_id
     
-    add_worker(
-        update.effective_user.id,
-        obj_id,
-        context.user_data['worker_name']
-    )
+    # Спросить про авто
+    keyboard = [
+        [InlineKeyboardButton("🚗 Использует своё авто", callback_data="worker_car_yes")],
+        [InlineKeyboardButton("❌ Нет своего авто", callback_data="worker_car_no")]
+    ]
     
     await query.edit_message_text(
-        f"✅ Монтажник '{context.user_data['worker_name']}' добавлен!\n\n🏠 Главное меню:",
+        f"👤 {context.user_data['worker_name']}\n\n🚗 Использует свой автомобиль на объектах?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return 14  # Новый state для выбора авто
+
+async def worker_set_car(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    used_car = 1 if query.data == "worker_car_yes" else 0
+    context.user_data['worker_used_car'] = used_car
+    
+    # Спросить про бензин
+    keyboard = [
+        [InlineKeyboardButton("⛽ Потратил на бензин", callback_data="worker_fuel_yes")],
+        [InlineKeyboardButton("❌ Не потратил", callback_data="worker_fuel_no")]
+    ]
+    
+    await query.edit_message_text(
+        f"👤 {context.user_data['worker_name']}\n\n⛽ Потратил ли деньги на бензин?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return 15  # Новый state для выбора бензина
+
+async def worker_set_fuel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    spent_fuel = 1 if query.data == "worker_fuel_yes" else 0
+    context.user_data['worker_spent_fuel'] = spent_fuel
+    
+    # Спросить про прочие траты
+    keyboard = [
+        [InlineKeyboardButton("💼 Были прочие траты", callback_data="worker_other_yes")],
+        [InlineKeyboardButton("❌ Без прочих трат", callback_data="worker_other_no")]
+    ]
+    
+    await query.edit_message_text(
+        f"👤 {context.user_data['worker_name']}\n\n💼 Были ли другие личные траты на объект?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return 16  # Новый state для выбора прочих трат
+
+async def worker_save_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    other_expenses = 1 if query.data == "worker_other_yes" else 0
+    context.user_data['worker_other_expenses'] = other_expenses
+    
+    from database import add_worker
+    
+    # Сохранить монтажника с флагом авто
+    add_worker(
+        update.effective_user.id,
+        context.user_data['worker_object_id'],
+        context.user_data['worker_name'],
+        context.user_data['worker_used_car']
+    )
+    
+    from handlers.menu import main_keyboard
+    
+    summary = f"✅ <b>Монтажник добавлен!</b>\n\n"
+    summary += f"👤 {context.user_data['worker_name']}\n"
+    summary += f"🚗 Авто: {'Да ✅' if context.user_data['worker_used_car'] else 'Нет ❌'}\n"
+    summary += f"⛽ Бензин: {'Да ✅' if context.user_data['worker_spent_fuel'] else 'Нет ❌'}\n"
+    summary += f"💼 Прочие траты: {'Да ✅' if context.user_data['worker_other_expenses'] else 'Нет ❌'}\n"
+    
+    await query.edit_message_text(
+        summary + "\n\n🏠 Главное меню:",
         reply_markup=main_keyboard()
     )
     return 0
+
 
 async def list_workers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
