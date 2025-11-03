@@ -109,8 +109,11 @@ def main():
                 CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
             WORKER_CAR: [
+                CommandHandler('start', start),
                 CallbackQueryHandler(worker_car_answer, pattern="^car_"),
+                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
+
             WORKER_FUEL: [
                 CallbackQueryHandler(worker_fuel_answer, pattern="^fuel_"),
             ],
