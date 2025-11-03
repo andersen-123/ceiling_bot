@@ -27,22 +27,19 @@ async def show_salary_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             continue
         
         text += f"📋 <b>{obj_name}</b>\n"
-        text += f"   💰 Стоимость: {salary_data['total_cost']}₽\n"
-        text += f"   - Материалы: {salary_data['materials']}₽\n"
-        text += f"   - Бензин: {salary_data['fuel']}₽\n"
+        text += f"   💰 Стоимость объекта: {salary_data['total_cost']}₽\n"
+        text += f"   - Всего расходов: {salary_data['total_expenses']}₽\n"
         text += f"   = Остаток: {salary_data['remainder']}₽\n"
-        text += f"   - Амортизация (5%): {salary_data['depreciation']}₽\n"
-        text += f"   📊 Кол-во монтажников: {salary_data['workers_count']}\n\n"
+        text += f"   - Амортизация авто (5%): {salary_data['depreciation_total']}₽\n"
+        text += f"   📊 Монтажников: {salary_data['workers_count']}\n\n"
         
-        text += "   <b>🧑‍💼 Зарплата по монтажникам:</b>\n"
+        text += "   <b>🧑‍💼 Зарплата:</b>\n"
         for worker_name, salary_info in salary_data['salaries'].items():
             text += f"      👤 {worker_name}:\n"
-            text += f"         • Базовая: {salary_info['base']}₽\n"
-            if salary_info['fuel_share'] > 0:
-                text += f"         • Бензин: +{salary_info['fuel_share']}₽\n"
+            text += f"         💵 Базовая: {salary_info['base']:.0f}₽\n"
             if salary_info['depreciation'] > 0:
-                text += f"         • Амортизация: +{salary_info['depreciation']}₽\n"
-            text += f"         💵 <b>ИТОГО: {salary_info['total']}₽</b>\n"
+                text += f"         🚗 Амортизация: +{salary_info['depreciation']:.0f}₽\n"
+            text += f"         <b>✅ ИТОГО: {salary_info['total']:.0f}₽</b>\n"
         text += "\n"
     
     await query.edit_message_text(
@@ -51,3 +48,4 @@ async def show_salary_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
     return 14
+

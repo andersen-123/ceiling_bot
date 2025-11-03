@@ -136,12 +136,11 @@ def get_object_workers(user_id, object_id):
 # SALARY CALCULATION
 def calculate_object_salary(user_id, object_id):
     """
-    Формула расчёта зарплаты:
-    1. Остаток = Стоимость - Материалы - Бензин
-    2. Амортизация (5%) = 5% от остатка
-    3. Базовая зарплата = (Остаток - Амортизация) / кол-во монтажников
-    4. Добавить амортизацию тому, кто на авто
-    5. Возместить бензин тому, кто потратил
+    Правильный расчёт зарплаты:
+    1. Остаток = 100% (Стоимость объекта) - Расходы (материалы, бензин, прочие)
+    2. Амортизация авто = 5% от остатка (только для тех кто использует авто)
+    3. Зарплата после амортизации = Остаток - Амортизация = делится на количество монтажников
+    4. Каждый получает: базовую часть + возмещение бензина (если потратил)
     """
     conn = get_db()
     c = conn.cursor()
@@ -160,15 +159,9 @@ def calculate_object_salary(user_id, object_id):
         "SELECT category, SUM(amount) FROM expenses WHERE user_id=? AND object_id=? GROUP BY category",
         (user_id, object_id)
     )
-    expenses = c.fetchall()
+    expenses_list = c.fetchall()
     
-    materials = 0
-    fuel = 0
-    for category, amount in expenses:
-        if category == 'materials':
-            materials = amount
-        elif category == 'fuel':
-            fuel = amount
+    total_expenses = sum(amount for _, amount in expenses_list)
     
     # Получить монтажников
     c.execute(
@@ -183,38 +176,41 @@ def calculate_object_salary(user_id, object_id):
         return None
     
     # Расчёты
-    remainder = total_cost - materials - fuel
-    depreciation = remainder * 0.05
-    salary_without_depreciation = (remainder - depreciation) / len(workers)
+    remainder = total_cost - total_expenses  # 100% - расходы
+    
+    # Амортизация = 5% от остатка, но начисляется ТОЛЬКО тем кто на авто
+    workers_with_car = sum(1 for _, used_car in workers if used_car)
+    depreciation_per_car = (remainder * 0.05) if workers_with_car > 0 else 0
+    
+    # Зарплата после амортизации
+    salary_pool = remainder - (depreciation_per_car * workers_with_car)
+    base_salary = salary_pool / len(workers)
     
     salaries = {}
     for worker_name, used_car in workers:
-        salary = salary_without_depreciation
+        salary = base_salary
         
         # Добавить амортизацию если использовал авто
         if used_car:
-            salary += depreciation
-        
-        # Возместить бензин
-        fuel_share = fuel / len(workers) if fuel > 0 else 0
-        salary += fuel_share
+            salary += depreciation_per_car
         
         salaries[worker_name] = {
-            'base': salary_without_depreciation,
-            'fuel_share': fuel_share,
-            'depreciation': depreciation if used_car else 0,
+            'base': base_salary,
+            'depreciation': depreciation_per_car if used_car else 0,
             'total': salary
         }
     
     return {
         'total_cost': total_cost,
-        'materials': materials,
-        'fuel': fuel,
+        'total_expenses': total_expenses,
         'remainder': remainder,
-        'depreciation': depreciation,
+        'depreciation_total': depreciation_per_car * workers_with_car,
         'salaries': salaries,
         'workers_count': len(workers)
     }
+
+    
+  
 
 def set_worker_used_car(user_id, object_id, worker_name, used_car):
     """Установить что монтажник использовал авто на объекте"""
